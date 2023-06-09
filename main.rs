@@ -1,75 +1,106 @@
-use {std::io, std::thread, std::time::Duration, std::fs};
-mod commands{
-    pub fn clear_console() {
+
+use {std::time::Duration, std::fs::OpenOptions, std::io::Write, std::io};
+mod calc{
+    pub fn ossz(fir:f64,sec:f64) -> f64 {
+        return fir + sec;
+    }
+
+    pub fn kiv(fir:f64,sec:f64) -> f64 {
+        return fir - sec;
+    }
+    pub fn oszt(fir:f64,sec:f64) -> f64 {
+        return fir / sec;
+    }
+    pub fn szor(fir:f64,sec:f64) -> f64 {
+        return fir * sec;
+    }
+}
+mod etc{
+    pub fn clear_console(is:bool) {
         let _ = std::process::Command::new("cmd")
             .arg("/C")
             .arg("cls")
             .status();
-    }
-    pub fn ossze(fir:f64, sec:f64) -> f64{
-        return fir + sec;
-    }
-    pub fn kiv(fir:f64, sec:f64) -> f64{
-        return fir - sec;
-    }
-    pub fn oszt(fir:f64, sec:f64) -> f64{
-        return fir / sec;
-    }
-    pub fn szor(fir:f64, sec:f64) -> f64{
-        return fir * sec;
-    }
+        if is {println!("Calculator\n");}
+    }   
 }
 
-fn main() {
+fn main(){
     loop {
-        let mut veg:f64 = 0.0;
-        let mut my_vector: Vec<f64> = Vec::new();
+        etc::clear_console(false);
+        let mut userfloat :Vec<f64> = Vec::new();
+        let mut userlog :Vec<String> = Vec::new();
         let mut user_input = String::new();
-        //loop
+        let veg:f64;
+        println!("Calculator\n");
         for _ in 0..2 {
-            println!("Calculator\n\nEnter the a number: ");
-            io::stdin().read_line(&mut user_input).expect("failed to readline");
-            //pushback from user_input
             
-            let u_float: f64 = match user_input.trim().parse() {
-                Ok(num) => num, 
+            println!("Enter a number :");
+            io::stdin().read_line(&mut user_input).expect("Couldnt read line!");
+
+            let u_float:f64 = match user_input.trim().parse() {
+                Ok(u_float) => u_float,
                 Err(_) => {
-                    println!("Invalid input. Please enter a valid number.");
+                    println!("Enter a vaild number!");
                     return;
                 }
-                
             };
-            my_vector.push(u_float);
-            commands::clear_console();
+            //pushback logs
+            userfloat.push(u_float);
+            userlog.push(u_float.to_string());
             user_input.clear();
+            etc::clear_console(true);
         }
-        user_input.clear();
-        println!("First number : {}", my_vector[0]);
-        println!("Second number : {}", my_vector[1]);
-        println!("Enter a mathematical expresssion : ");
-
-        //get math exp 
-        io::stdin().read_line(&mut user_input).expect("failed to readline");
+        println!("Current number you are working with : \n{}\n{}\n", userfloat[0], userfloat[1]);
+        println!("Enter a math. expression");
+        io::stdin().read_line(&mut user_input).expect("Couldnt read line!");
         if user_input.trim() == "+" {
-            veg = commands::ossze(my_vector[0], my_vector[1]);
+            veg = calc::ossz(userfloat[0],userfloat[1]);
         }
-        else if user_input.trim() == "-"{
-            veg = commands::kiv(my_vector[0], my_vector[1]);
+        else if user_input.trim() == "-" {
+            veg = calc::kiv(userfloat[0],userfloat[1]);
         }
         else if user_input.trim() == "*" {
-            veg = commands::szor(my_vector[0], my_vector[1]);
+            veg = calc::szor(userfloat[0],userfloat[1]);
         }
-        else if user_input.trim() == ":" || user_input.trim() == "/" {
-            veg = commands::oszt(my_vector[0], my_vector[1])
+        else if user_input.trim() == "/" || user_input.trim() == ":" {
+            veg = calc::oszt(userfloat[0],userfloat[1]);
         }
         else {
-            println!("Enter a valid choice!");
+            println!("Enter a valid expression!");
+            return;
         }
+        etc::clear_console(true);
 
-        commands::clear_console();
-
-        println!("Answer : {}", veg);
+        //pushback veg and exp input + edit them
+        userlog.push(user_input.trim().to_string());
+        userlog.push("=".to_string());
+        userlog.push(veg.to_string());
+        userlog.swap(1, 2);
         
-        thread::sleep(Duration::from_secs(4));
+        //vec::userlog => 0. 1num 1. 2num 3. exp 4.veg
+        //open and write to file
+        let mut file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("math.history")
+            .expect("Failed to open file");
+
+        for index in 0..userlog.len() {
+            match write!(file, "{} ", userlog[index]){
+            Ok(_) => {},
+            Err(e) =>
+                {
+                    println!("Error writing to the file!\n{}", e);
+                }
+            }
+        }
+        write!(file, "\n").expect("");
+        //after writing finish up
+        
+
+        //after every exp poss. print veg
+        println!("Answer : {}\n\n", veg);
+        std::thread::sleep(Duration::from_secs(4));
     }
 }
